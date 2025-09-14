@@ -1,35 +1,28 @@
 services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-    environment:
-      VITE_API_URL: http://localhost:4000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-
   backend:
     build: ./backend
-    container_name: backend
+    container_name: cha-backend
     ports:
       - "4000:4000"
     environment:
-      - NODE_ENV=development
-      - MONGO_URI=mongodb://mongodb:27017/multidb
-      - SECRET_TOKEN_KEY=superUltraMegaSecretKey123
+      NODE_ENV: development
+      PORT: 4000
+      # IMPORTANT: use the service name "mongodb" (NOT localhost)
+      MONGO_URI: mongodb://mongodb:27017/cancer_helper_ai
+      SECRET_TOKEN_KEY: superUltraMegaSecretKey123
     depends_on:
       - mongodb
     volumes:
+      # hot-reload dev workflow with nodemon (if you want)
       - ./backend:/app
       - /app/node_modules
+    command: npm run dev  # uses nodemon if you configured "dev" script
 
   mongodb:
     image: mongo:6.0
+    container_name: cha-mongo
     ports:
-      - "27017:27017"
+      - "27018:27017"   # so Compass can connect via localhost:27017
     volumes:
       - mongodb_data:/data/db
 

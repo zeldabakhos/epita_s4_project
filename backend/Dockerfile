@@ -1,13 +1,17 @@
-FROM node:18
+# production-ready image; for dev see the compose section below
+FROM node:20-alpine
 
 WORKDIR /app
 
+# install only what's needed
 COPY package*.json ./
+RUN npm ci --omit=dev || npm install --omit=dev
 
-RUN npm install
-
+# copy source
 COPY . .
 
-EXPOSE 4000
+ENV NODE_ENV=production
+ENV PORT=4000
 
-CMD ["npm", "run", "dev"]
+EXPOSE 4000
+CMD ["node", "index.js"]
