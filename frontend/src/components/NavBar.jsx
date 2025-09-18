@@ -1,11 +1,36 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+function hasValidToken() {
+  const t = localStorage.getItem("token");
+  return !!(t && t !== "null" && t !== "undefined");
+}
 
 export default function NavBar() {
-  const token = localStorage.getItem("token");
+  const [isAuthed, setIsAuthed] = useState(() => hasValidToken());
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const update = () => setIsAuthed(hasValidToken());
+    // When other tabs change localStorage
+    window.addEventListener("storage", update);
+    // When THIS tab logs in/out (we dispatch this event)
+    window.addEventListener("auth-change", update);
+    // Also refresh when tab regains focus (after redirects)
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.removeEventListener("auth-change", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+
   const handleLogout = () => {
-    localStorage.clear();
+    // remove only what we set
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    // notify app (Footer/Nav listen to this)
+    window.dispatchEvent(new Event("auth-change"));
     navigate("/login");
   };
 
@@ -16,7 +41,7 @@ export default function NavBar() {
 
         <div className="collapse navbar-collapse">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            {token && (
+            {isAuthed && (
               <>
                 <li className="nav-item">
                   <NavLink className="nav-link" to="/mood-check">Mood Check</NavLink>
@@ -26,7 +51,7 @@ export default function NavBar() {
             )}
           </ul>
           <div className="d-flex gap-2">
-            {!token ? (
+            {!isAuthed ? (
               <>
                 <Link to="/login" className="btn btn-outline-light btn-sm">Log in</Link>
                 <Link to="/signup" className="btn btn-light btn-sm">Sign up</Link>

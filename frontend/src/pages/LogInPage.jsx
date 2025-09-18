@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
@@ -6,6 +7,7 @@ export default function LogInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +22,11 @@ export default function LogInPage() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.user._id); // store backend userId
-      window.location.href = "/";
+
+      // notify the app so Nav/Footer update immediately
+      window.dispatchEvent(new Event("auth-change"));
+
+      navigate("/"); // or navigate("/mood-check");
     } catch (err) {
       setError(err.message);
     }
