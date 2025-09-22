@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* -------- Tiny modal component (inline) -------- */
+const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+
 function MessageModal({ open, onClose, message }) {
   // close on ESC
   useEffect(() => {
@@ -50,15 +52,37 @@ export default function MoodCheck() {
 
   const allAnswered = QUESTIONS.every((q) => !!answers[q.key]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
     if (!allAnswered) return;
-
-    localStorage.setItem("lastMoodCheck", JSON.stringify(answers));
-
-    setModalOpen(true);
+  
+    try {
+      // format answers into array of {questionId, value}
+      const formattedAnswers = Object.entries(answers).map(([key, value]) => ({
+        questionId: key, // replace with actual IDs if you’re fetching from backend
+        value,
+      }));
+  
+      const res = await fetch(`${API}/api/mood/entries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ answers: formattedAnswers }),
+      });
+  
+      if (!res.ok) throw new Error("Failed to save mood entry");
+  
+      // if save worked → open chatbot
+      navigate("/chat");
+    } catch (err) {
+      console.error(err);
+      alert("Could not save mood entry.");
+    }
   };
+  
 
   const handleModalClose = () => {
     setModalOpen(false);

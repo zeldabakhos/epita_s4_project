@@ -1,29 +1,40 @@
 // /backend/services/scoring.service.js
-function computeScore(answers, questionsById) {
-    let total = 0;
-    for (const a of answers) {
-      const q = questionsById[a.questionId];
-      const weight = q?.weight ?? 1;
-      total += (a.value || 0) * weight;
+function computeScore(answers, questionMap = {}) {
+  let score = 0;
+
+  for (const ans of answers) {
+    const q = questionMap[ans.questionId];
+    if (!q) continue;
+
+    // Find index of the chosen label in the question options
+    const idx = q.options.findIndex((opt) =>
+      typeof opt === "string"
+        ? opt === ans.value
+        : opt.label === ans.value || opt.value === ans.value
+    );
+
+    if (idx >= 0) {
+      score += typeof q.options[idx] === "object"
+        ? q.options[idx].value   // numeric defined in schema
+        : idx;                   // fallback: use index
     }
-    return total;
   }
-  
-  function bandSeverity(score) {
-    if (score <= 4) return 'none';
-    if (score <= 9) return 'mild';
-    if (score <= 14) return 'moderate';
-    return 'severe';
-  }
-  
-  // Unlock only if all required questions were answered
-  function shouldUnlock(answers, questionsById) {
-    const requiredIds = Object.values(questionsById)
-      .filter(q => q.required)
-      .map(q => String(q._id));
-    const answeredRequired = new Set(answers.map(a => String(a.questionId)));
-    return requiredIds.every(id => answeredRequired.has(id));
-  }
-  
-  module.exports = { computeScore, bandSeverity, shouldUnlock };
-  
+
+  return score;
+}
+
+function bandSeverity(score) {
+  if (score < 3) return "none";
+  if (score < 6) return "mild";
+  if (score < 9) return "moderate";
+  return "severe";
+}
+
+function shouldUnlock(answers) {
+  // Example: unlock if any bad moods detected
+  return answers.some((ans) =>
+    ["Very low", "Low", "Severe", "Poor"].includes(ans.value)
+  );
+}
+
+module.exports = { computeScore, bandSeverity, shouldUnlock };

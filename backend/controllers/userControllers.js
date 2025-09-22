@@ -80,7 +80,7 @@ exports.userLogin = async (req, res) => {
         lastName: foundUser.lastName,
         email: foundUser.email,
         role: foundUser.role,
-        linkedPatient: foundUser.linkedPatient || null,   // 🔑 consistent
+        linkedPatient: foundUser.linkedPatient || null,   
         diagnosis: foundUser.diagnosis || null,
         cancerStage: foundUser.cancerStage || null,
         treatments: foundUser.treatments || [],

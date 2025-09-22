@@ -2,7 +2,6 @@
 const mongoose = require('mongoose');
 const Question = require('../models/Question');
 const MoodEntry = require('../models/MoodEntry');
-const { createEntrySchema } = require('../validators/mood.schema');
 const { computeScore, bandSeverity, shouldUnlock } = require('../services/scoring.service');
 
 // GET /api/mood/questions
@@ -72,47 +71,37 @@ const seedQuestions = async (_req, res, next) => {
   }
 };
 
-// POST /api/mood/entries
-const createEntry = async (req, res, next) => {
+// CREATE mood entry
+const createMoodEntry = async (req, res) => {
   try {
-    const parsed = createEntrySchema.parse(req.body);
+    const userId = req.userId; // from verifyToken
+    const answers = req.body.answers;
 
-    // userId must come in the body
-    const userId = parsed.userId;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-
-    const ids = parsed.answers.map(a => new mongoose.Types.ObjectId(a.questionId));
-    const questions = await Question.find({ _id: { $in: ids } }).lean();
-    const byId = Object.fromEntries(questions.map(q => [String(q._id), q]));
-
-    const score = computeScore(parsed.answers, byId);
-    const severity = bandSeverity(score);
-    const unlockChatbot = shouldUnlock(parsed.answers, byId);
-
-    const doc = await MoodEntry.create({
-      userId,
-      answers: parsed.answers,
-      score,
-      severity,
-      unlockChatbot
-    });
-
-    res.status(201).json({
-      id: doc._id,
-      score,
-      severity,
-      unlockChatbot
-    });
-  } catch (e) {
-    if (e.name === 'ZodError') {
-      return res.status(400).json({ error: 'Validation failed', details: e.errors });
+    if (!answers || typeof answers !== "object") {
+      return res.status(400).json({ message: "Answers object required" });
     }
-    next(e);
+
+    const score = computeScore(answers);
+    const severity = bandSeverity(score);
+    const unlockChatbot = shouldUnlock(answers);
+
+    const entry = await MoodEntry.create({
+      userId,
+      answers,
+      score,
+      severity,
+      unlockChatbot,
+    });
+
+    res.status(201).json(entry);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to save mood entry" });
   }
 };
 
-// GET /api/mood/entries/latest?userId=xxx
-const getLatestEntry = async (req, res, next) => {
+// LATEST mood entry
+const getLatestEntry = async (req, res) => {
   try {
     const userId = req.query.userId;
     if (!userId) {
@@ -125,14 +114,15 @@ const getLatestEntry = async (req, res, next) => {
     }
 
     res.json(doc);
-  } catch (e) {
-    next(e);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch mood entry" });
   }
 };
 
 module.exports = {
   getQuestions,
   seedQuestions,
-  createEntry,
+  createMoodEntry,   // ✅ fixed
   getLatestEntry
 };
