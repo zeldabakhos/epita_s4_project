@@ -46,6 +46,9 @@ export default function FooterComp() {
             <li className="nav-item">
               <NavLink to="/chat" className="nav-link px-2">Chat</NavLink>
             </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/resources">Resources</NavLink>
+            </li>
           </>
         )}
       </ul>

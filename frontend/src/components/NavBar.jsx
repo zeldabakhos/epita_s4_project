@@ -49,6 +49,9 @@ export default function NavBar() {
                 <li className="nav-item">
                   <NavLink className="nav-link" to="/chat">Chat</NavLink>
                 </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/resources">Resources</NavLink>
+                </li>
               </>
             )}
           </ul>

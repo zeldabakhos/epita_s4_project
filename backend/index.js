@@ -9,6 +9,7 @@ const connectDB = require("./utils/db.js");
 const userRoutes = require("./routes/users");
 const moodRoutes = require("./routes/mood.routes"); 
 const chatRoutes = require("./routes/chatRoutes");
+const resourcesRoutes = require("./routes/resourcesRoutes");
 
 // Connect to MongoDB
 connectDB();
@@ -35,6 +36,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/users", userRoutes);
 app.use("/api/mood", moodRoutes); 
 app.use("/api/chat", chatRoutes);
+app.use("/api/resources", resourcesRoutes);
 
 // Root
 app.get("/", (_req, res) => res.send("Welcome to Cancer Helper AI API"));

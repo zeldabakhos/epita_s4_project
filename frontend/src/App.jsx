@@ -8,6 +8,7 @@ import SignUpPage from "./pages/SignUpPage";
 import MoodCheck from "./pages/MoodCheck";
 import NotFoundPage from "./pages/NotFoundPage";
 import ChatPage from "./pages/ChatPage.jsx";
+import ResourcesPage from "./pages/ResourcesPage";
 
 const hasToken = () => {
   const t = localStorage.getItem("token");
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/mood-check" element={<MoodCheck />} />
             <Route path="/chat" element={<RequireAuth><ChatPage /></RequireAuth>} />
+            <Route path="/resources" element={<ResourcesPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
