@@ -8,15 +8,16 @@ function hasValidToken() {
 
 export default function NavBar() {
   const [isAuthed, setIsAuthed] = useState(() => hasValidToken());
+  const [role, setRole] = useState(() => localStorage.getItem("role"));
   const navigate = useNavigate();
 
   useEffect(() => {
-    const update = () => setIsAuthed(hasValidToken());
-    // When other tabs change localStorage
+    const update = () => {
+      setIsAuthed(hasValidToken());
+      setRole(localStorage.getItem("role"));
+    };
     window.addEventListener("storage", update);
-    // When THIS tab logs in/out (we dispatch this event)
     window.addEventListener("auth-change", update);
-    // Also refresh when tab regains focus (after redirects)
     document.addEventListener("visibilitychange", update);
     return () => {
       window.removeEventListener("storage", update);
@@ -26,10 +27,9 @@ export default function NavBar() {
   }, []);
 
   const handleLogout = () => {
-    // remove only what we set
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
-    // notify app (Footer/Nav listen to this)
+    localStorage.removeItem("role");
     window.dispatchEvent(new Event("auth-change"));
     navigate("/login");
   };
@@ -41,7 +41,7 @@ export default function NavBar() {
 
         <div className="collapse navbar-collapse">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            {isAuthed && (
+            {isAuthed && role === "patient" && (
               <>
                 <li className="nav-item">
                   <NavLink className="nav-link" to="/mood-check">Mood Check</NavLink>
@@ -52,9 +52,19 @@ export default function NavBar() {
                 <li className="nav-item">
                   <NavLink className="nav-link" to="/resources">Resources</NavLink>
                 </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/caregiver">Caregiver</NavLink>
+                </li>
               </>
             )}
+
+            {isAuthed && role === "caregiver" && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/caregiver-dash">Caregiver Dashboard</NavLink>
+              </li>
+            )}
           </ul>
+
           <div className="d-flex gap-2">
             {!isAuthed ? (
               <>

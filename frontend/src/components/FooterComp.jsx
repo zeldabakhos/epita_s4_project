@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 
 export default function FooterComp() {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [role, setRole] = useState(() => localStorage.getItem("role"));
 
   useEffect(() => {
     const handleStorageChange = () => {
       setToken(localStorage.getItem("token"));
+      setRole(localStorage.getItem("role"));
     };
 
     window.addEventListener("storage", handleStorageChange);
-    // also handle changes within the same tab
     const interval = setInterval(handleStorageChange, 500);
 
     return () => {
@@ -35,7 +36,7 @@ export default function FooterComp() {
               <Link to="/signup" className="nav-link px-2">Sign-up</Link>
             </li>
           </>
-        ) : (
+        ) : role === "patient" ? (
           <>
             <li className="nav-item">
               <Link to="/" className="nav-link px-2">Home</Link>
@@ -47,10 +48,22 @@ export default function FooterComp() {
               <NavLink to="/chat" className="nav-link px-2">Chat</NavLink>
             </li>
             <li className="nav-item">
-              <NavLink className="nav-link" to="/resources">Resources</NavLink>
+              <NavLink to="/resources" className="nav-link px-2">Resources</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/caregiver" className="nav-link px-2">Caregiver</NavLink>
             </li>
           </>
-        )}
+        ) : role === "caregiver" ? (
+          <>
+            <li className="nav-item">
+              <Link to="/" className="nav-link px-2">Home</Link>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/caregiver-dash" className="nav-link px-2">Caregiver Dashboard</NavLink>
+            </li>
+          </>
+        ) : null}
       </ul>
       <p className="text-center text-muted mt-2">
         © {new Date().getFullYear()} OncoBuddy – AI Cancer Support

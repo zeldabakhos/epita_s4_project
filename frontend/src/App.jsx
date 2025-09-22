@@ -9,6 +9,8 @@ import MoodCheck from "./pages/MoodCheck";
 import NotFoundPage from "./pages/NotFoundPage";
 import ChatPage from "./pages/ChatPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage";
+import InviteCaregiverPage from "./pages/InviteCaregiverPage.jsx";
+import CaregiverDashboard from "./pages/CaregiverDashboard.jsx";
 
 const hasToken = () => {
   const t = localStorage.getItem("token");
@@ -29,6 +31,8 @@ export default function App() {
             <Route path="/mood-check" element={<MoodCheck />} />
             <Route path="/chat" element={<RequireAuth><ChatPage /></RequireAuth>} />
             <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/caregiver" element={<InviteCaregiverPage />} />
+            <Route path="/caregiver-dash" element={<CaregiverDashboard />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

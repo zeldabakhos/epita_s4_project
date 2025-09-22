@@ -3,31 +3,53 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // POST /api/users/signup
+// POST /api/users/signup
 exports.userSignUp = async (req, res) => {
-  const { firstName, lastName, email, password, diagnosis, cancerStage, treatments, allergies } = req.body;
+  const { 
+    firstName, lastName, email, password,
+    diagnosis, cancerStage, treatments, allergies,
+    role
+  } = req.body;
 
   try {
-    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
+      role: role || "patient",
       diagnosis,
       cancerStage,
       treatments,
       allergies,
     });
 
+    // Save caregiver first
     const savedUser = await newUser.save();
+
+    if (savedUser.role === "caregiver") {
+      const patient = await User.findOne({ invitations: savedUser.email });
+      if (!patient) {
+        return res.status(403).json({ message: "This caregiver email was not invited by any patient" });
+      }
+    
+      savedUser.linkedPatient = patient._id;   
+      await savedUser.save();
+    
+      patient.caregivers.push(savedUser._id);
+      patient.invitations = patient.invitations.filter((e) => e !== savedUser.email);
+      await patient.save();
+    }
 
     res.status(201).json({
       id: savedUser._id,
       firstName: savedUser.firstName,
       lastName: savedUser.lastName,
       email: savedUser.email,
+      role: savedUser.role,
+      patient: savedUser.patient || null,
       diagnosis: savedUser.diagnosis || null,
       cancerStage: savedUser.cancerStage || null,
     });
@@ -36,6 +58,7 @@ exports.userSignUp = async (req, res) => {
   }
 };
 
+// POST /api/users/login
 // POST /api/users/login
 exports.userLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -56,16 +79,20 @@ exports.userLogin = async (req, res) => {
         firstName: foundUser.firstName,
         lastName: foundUser.lastName,
         email: foundUser.email,
+        role: foundUser.role,
+        linkedPatient: foundUser.linkedPatient || null,   // 🔑 consistent
         diagnosis: foundUser.diagnosis || null,
         cancerStage: foundUser.cancerStage || null,
         treatments: foundUser.treatments || [],
         allergies: foundUser.allergies || [],
       },
     });
+    
   } catch (err) {
     res.status(500).json({ message: "Login failed" });
   }
 };
+
 
 // GET /api/users/me (protected)
 exports.getMe = async (req, res) => {
@@ -92,3 +119,45 @@ exports.updateMe = async (req, res) => {
     res.status(400).json({ message: "Update failed" });
   }
 };
+
+// POST /api/users/invite-caregiver (protected, patient only)
+// POST /api/users/invite-caregiver
+// POST /api/caregivers/invite
+// POST /api/caregivers/invite
+exports.inviteCaregiver = async (req, res) => {
+  try {
+    const patientId = req.userId;
+    const { caregiverEmail } = req.body;
+
+    const patient = await User.findById(patientId);
+    if (!patient || patient.role !== "patient") {
+      return res.status(403).json({ message: "Only patients can invite caregivers" });
+    }
+
+    const email = caregiverEmail.toLowerCase().trim();
+
+    // If caregiver already exists, link immediately
+    let caregiver = await User.findOne({ email, role: "caregiver" });
+    if (caregiver) {
+      caregiver.patient = patient._id;
+      await caregiver.save();
+
+      if (!patient.caregivers.includes(caregiver._id)) {
+        patient.caregivers.push(caregiver._id);
+      }
+    } else {
+      // Caregiver doesn’t exist yet → store invitation
+      if (!patient.invitations.includes(email)) {
+        patient.invitations.push(email);
+      }
+    }
+
+    await patient.save();
+
+    res.json({ message: "Caregiver invited successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to invite caregiver" });
+  }
+};
+

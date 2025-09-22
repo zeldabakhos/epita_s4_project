@@ -1,0 +1,31 @@
+# Patient-Caregiver Support Platform 💬❤️
+
+An AI-powered web platform designed to support patients and their caregivers.  
+The system provides secure patient–caregiver linking, mood tracking, journaling, and an integrated chatbot for emotional and informational support.
+
+---
+
+## 🚀 Features
+
+- **User Authentication** (JWT-based login/signup for patients & caregivers)
+- **Patient–Caregiver Linking** (patients invite caregivers by email, caregivers get linked automatically)
+- **Mood Tracking** (patients submit daily surveys for mood, sleep, energy, appetite, etc.)
+- **AI Chatbot** (TinyLLaMA via GPT4All for supportive conversations)
+- **Frontend (React)** with role-based navigation (footer/navbar updates based on login state)
+- **Backend (Node.js + Express)** with clean routes + controllers
+- **Database** (MongoDB + Mongoose ORM)
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React, React Router
+- **Backend:** Node.js, Express
+- **Database:** MongoDB
+- **AI Model:** GPT4All / TinyLLaMA (local integration via Docker)
+- **Authentication:** JWT
+
+---
+
+## 📂 Project Structure
+

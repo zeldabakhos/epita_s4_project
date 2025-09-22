@@ -15,9 +15,13 @@ const validateAll = (values) => {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errs.email = "Enter a valid email address.";
 
   if (!values.password) errs.password = "Password is required.";
-  else if (values.password.length < 10) errs.password = "Password must be at least 6 characters.";
+  else if (values.password.length < 12) errs.password = "Password must be at least 12 characters.";
 
-  // diagnosis / cancerStage optional for now — add rules if you need them
+  // If patient, diagnosis is required
+  if (values.role === "patient" && !values.diagnosis.trim()) {
+    errs.diagnosis = "Diagnosis is required for patients.";
+  }
+
   return errs;
 };
 
@@ -25,13 +29,11 @@ const validateAll = (values) => {
 const applyServerErrors = (data, setFieldErrors, setTopError) => {
   const fe = {};
   if (Array.isArray(data?.errors)) {
-    // e.g. [{path:'password', msg:'too short'}]
     for (const e of data.errors) {
       const key = e.path || e.field || e.param;
       if (key) fe[key] = e.msg || e.message || "Invalid value.";
     }
   } else if (data?.errors && typeof data.errors === "object") {
-    // e.g. { password: "too short", email: "invalid" } or Joi nested
     for (const [k, v] of Object.entries(data.errors)) {
       fe[k] = typeof v === "string" ? v : v?.message || "Invalid value.";
     }
@@ -46,6 +48,7 @@ export default function SignUpPage() {
     lastName: "",
     email: "",
     password: "",
+    role: "patient",   // NEW
     diagnosis: "",
     cancerStage: "",
   });
@@ -57,16 +60,6 @@ export default function SignUpPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((s) => ({ ...s, [name]: value }));
-    // live-validate only the field being edited
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      // re-run single-field rule quickly
-      const single = validateAll({ ...formData, [name]: value });
-      // keep previous errors but replace the one for this field
-      if (single[name]) next[name] = single[name];
-      else delete next[name];
-      return next;
-    });
   };
 
   const handleBlur = (e) => {
@@ -77,7 +70,6 @@ export default function SignUpPage() {
     e.preventDefault();
     setTopError("");
 
-    // client-side validation first
     const errs = validateAll(formData);
     setFieldErrors(errs);
     setTouched({
@@ -122,10 +114,23 @@ export default function SignUpPage() {
     <form className="card p-4" style={{ maxWidth: 480, margin: "auto" }} onSubmit={handleSubmit} noValidate>
       <h2 className="mb-3">Sign Up</h2>
 
+      {/* role selection */}
+      <div className="mb-3">
+        <label className="form-label">I am a...</label>
+        <select
+          name="role"
+          className="form-select"
+          value={formData.role}
+          onChange={handleChange}
+        >
+          <option value="patient">Patient</option>
+          <option value="caregiver">Caregiver</option>
+        </select>
+      </div>
+
       {topError && (
         <div className="alert alert-danger" role="alert">
           {topError}
-          {/* summary of first few field issues */}
           <ul className="mb-0 mt-2">
             {Object.entries(fieldErrors).slice(0,3).map(([k, v]) => (
               <li key={k}><strong>{k}:</strong> {v}</li>
@@ -134,7 +139,8 @@ export default function SignUpPage() {
         </div>
       )}
 
-      {fieldList.map((field) => {
+      {/* shared fields */}
+      {["firstName","lastName","email","password"].map((field) => {
         const isPwd = field === "password";
         const showError = touched[field] && !!fieldErrors[field];
         return (
@@ -147,10 +153,36 @@ export default function SignUpPage() {
               value={formData[field]}
               onChange={handleChange}
               onBlur={handleBlur}
-              required={["firstName","lastName","email","password"].includes(field)}
+              required
               minLength={isPwd ? 6 : undefined}
               aria-invalid={showError ? "true" : "false"}
               aria-describedby={showError ? `${field}-error` : undefined}
+            />
+            {showError && (
+              <div id={`${field}-error`} className="invalid-feedback">
+                {fieldErrors[field]}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* patient-only fields */}
+      {formData.role === "patient" && fieldList.slice(4).map((field) => {
+        const showError = touched[field] && !!fieldErrors[field];
+        return (
+          <div className="mb-3" key={field}>
+            <input
+              type="text"
+              name={field}
+              className={`form-control ${showError ? "is-invalid" : ""}`}
+              placeholder={field}
+              value={formData[field]}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              aria-invalid={showError ? "true" : "false"}
+              aria-describedby={showError ? `${field}-error` : undefined}
+              required={field === "diagnosis"}
             />
             {showError && (
               <div id={`${field}-error`} className="invalid-feedback">

@@ -21,12 +21,21 @@ export default function LogInPage() {
       if (!res.ok) throw new Error(data.message || "Login failed");
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.user._id); // store backend userId
+      localStorage.setItem("userId", data.user.id || data.user._id); // keep compatibility
+      localStorage.setItem("role", data.user.role); // NEW
+      if (data.user.linkedPatient) {
+        localStorage.setItem("linkedPatient", data.user.linkedPatient); // NEW
+      }
 
       // notify the app so Nav/Footer update immediately
       window.dispatchEvent(new Event("auth-change"));
 
-      navigate("/"); // or navigate("/mood-check");
+      if (data.user.role === "caregiver") {
+        navigate("/caregiver-dash");
+      } else {
+        navigate("/"); 
+      }
+      
     } catch (err) {
       setError(err.message);
     }
