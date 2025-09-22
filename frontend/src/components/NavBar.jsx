@@ -46,7 +46,9 @@ export default function NavBar() {
                 <li className="nav-item">
                   <NavLink className="nav-link" to="/mood-check">Mood Check</NavLink>
                 </li>
-                {/* add more links here later */}
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/chat">Chat</NavLink>
+                </li>
               </>
             )}
           </ul>

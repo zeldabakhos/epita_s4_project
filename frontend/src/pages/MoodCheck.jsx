@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 /* -------- Tiny modal component (inline) -------- */
 function MessageModal({ open, onClose, message }) {
@@ -37,6 +38,8 @@ const QUESTIONS = [
 ];
 
 export default function MoodCheck() {
+  const navigate = useNavigate();  
+
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,8 +55,14 @@ export default function MoodCheck() {
     setSubmitted(true);
     if (!allAnswered) return;
 
-    // TODO: replace with your real submit/unlock logic (API + navigate)
-    setModalOpen(true); // show pastel modal instead of alert
+    localStorage.setItem("lastMoodCheck", JSON.stringify(answers));
+
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    navigate("/chat");
   };
 
   return (
@@ -96,7 +105,7 @@ export default function MoodCheck() {
       {/* Pastel message modal */}
       <MessageModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleModalClose}                 
         message="Thanks! The chatbot is now unlocked ✨"
       />
     </div>

@@ -7,12 +7,15 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4000
-      MONGO_URI: mongodb://mongodb:27017/cancer_helper_ai      
+      MONGO_URI: mongodb://mongodb:27017/cancer_helper_ai
       SECRET_TOKEN_KEY: superUltraMegaSecretKey123
+      GPT4ALL_MODEL: /app/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
+      MAX_TOKENS: 256
     depends_on:
       - mongodb
     volumes:
       - ./backend:/app
+      - ./backend/models:/app/models   
       - /app/node_modules
     command: npm run dev
 
