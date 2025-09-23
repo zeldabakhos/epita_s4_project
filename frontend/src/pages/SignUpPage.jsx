@@ -1,8 +1,60 @@
-import { useState } from "react";
+// src/pages/SignUpPage.jsx
+import { useState, useEffect } from "react";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-// ---- validators ----
+/* ---------------- Tiny Toast component (inline) ---------------- */
+function Toast({ open, title = "Success", message, onClose, variant = "success", duration = 1600 }) {
+  useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(() => onClose?.(), duration);
+    return () => clearTimeout(id);
+  }, [open, onClose, duration]);
+
+  if (!open) return null;
+
+  const palette = {
+    success: { bg: "#0ea5e9", text: "#fff" },       // blue-ish
+    info:    { bg: "#6366f1", text: "#fff" },
+    warning: { bg: "#f59e0b", text: "#111827" },
+    danger:  { bg: "#ef4444", text: "#fff" },
+  };
+  const { bg, text } = palette[variant] || palette.success;
+
+  return (
+    <div style={{
+      position: "fixed",
+      right: 16, bottom: 16, zIndex: 1060,
+      display: "flex", gap: 12, alignItems: "flex-start",
+      minWidth: 280, maxWidth: 420,
+      background: "#ffffff",
+      border: "1px solid rgba(0,0,0,.06)",
+      borderRadius: 14,
+      boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+      padding: 14
+    }}>
+      <div style={{
+        width: 10, borderRadius: 9999, alignSelf: "stretch", background: bg
+      }} />
+      <div style={{ flex: 1, color: "#111827" }}>
+        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2, color: bg }}>{title}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.35 }}>{message}</div>
+      </div>
+      <button
+        aria-label="Close toast"
+        onClick={onClose}
+        style={{
+          border: "none", background: "transparent",
+          color: "#6b7280", cursor: "pointer", fontSize: 18, lineHeight: 1
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+/* ---------------- Your page (unchanged logic, prettier notif) ---------------- */
 const validateAll = (values) => {
   const errs = {};
   if (!values.firstName.trim()) errs.firstName = "First name is required.";
@@ -17,15 +69,12 @@ const validateAll = (values) => {
   if (!values.password) errs.password = "Password is required.";
   else if (values.password.length < 12) errs.password = "Password must be at least 12 characters.";
 
-  // If patient, diagnosis is required
   if (values.role === "patient" && !values.diagnosis.trim()) {
     errs.diagnosis = "Diagnosis is required for patients.";
   }
-
   return errs;
 };
 
-// maps typical Express/Joi/Zod error shapes into field errors + a top message
 const applyServerErrors = (data, setFieldErrors, setTopError) => {
   const fe = {};
   if (Array.isArray(data?.errors)) {
@@ -48,7 +97,7 @@ export default function SignUpPage() {
     lastName: "",
     email: "",
     password: "",
-    role: "patient",   // NEW
+    role: "patient",
     diagnosis: "",
     cancerStage: "",
   });
@@ -56,6 +105,10 @@ export default function SignUpPage() {
   const [touched, setTouched] = useState({});
   const [topError, setTopError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // toast state
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -99,8 +152,14 @@ export default function SignUpPage() {
         return;
       }
 
-      alert("Account created! Please log in.");
-      window.location.href = "/login";
+      // 🎉 Pretty toast instead of window.alert
+      setToastMsg("Account created successfully. Taking you to Log in…");
+      setToastOpen(true);
+
+      // Redirect after the toast (matches Toast duration)
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1600);
     } catch (err) {
       setTopError(err.message || "Sign-up failed, please try again.");
     } finally {
@@ -111,91 +170,98 @@ export default function SignUpPage() {
   const fieldList = ["firstName","lastName","email","password","diagnosis","cancerStage"];
 
   return (
-    <form className="card p-4" style={{ maxWidth: 480, margin: "auto" }} onSubmit={handleSubmit} noValidate>
-      <h2 className="mb-3">Sign Up</h2>
+    <>
+      <form className="card p-4" style={{ maxWidth: 480, margin: "auto" }} onSubmit={handleSubmit} noValidate>
+        <h2 className="mb-3">Sign Up</h2>
 
-      {/* role selection */}
-      <div className="mb-3">
-        <label className="form-label">I am a...</label>
-        <select
-          name="role"
-          className="form-select"
-          value={formData.role}
-          onChange={handleChange}
-        >
-          <option value="patient">Patient</option>
-          <option value="caregiver">Caregiver</option>
-        </select>
-      </div>
-
-      {topError && (
-        <div className="alert alert-danger" role="alert">
-          {topError}
-          <ul className="mb-0 mt-2">
-            {Object.entries(fieldErrors).slice(0,3).map(([k, v]) => (
-              <li key={k}><strong>{k}:</strong> {v}</li>
-            ))}
-          </ul>
+        <div className="mb-3">
+          <label className="form-label">I am a...</label>
+          <select
+            name="role"
+            className="form-select"
+            value={formData.role}
+            onChange={handleChange}
+          >
+            <option value="patient">Patient</option>
+            <option value="caregiver">Caregiver</option>
+          </select>
         </div>
-      )}
 
-      {/* shared fields */}
-      {["firstName","lastName","email","password"].map((field) => {
-        const isPwd = field === "password";
-        const showError = touched[field] && !!fieldErrors[field];
-        return (
-          <div className="mb-3" key={field}>
-            <input
-              type={isPwd ? "password" : field === "email" ? "email" : "text"}
-              name={field}
-              className={`form-control ${showError ? "is-invalid" : ""}`}
-              placeholder={field}
-              value={formData[field]}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              minLength={isPwd ? 6 : undefined}
-              aria-invalid={showError ? "true" : "false"}
-              aria-describedby={showError ? `${field}-error` : undefined}
-            />
-            {showError && (
-              <div id={`${field}-error`} className="invalid-feedback">
-                {fieldErrors[field]}
-              </div>
-            )}
+        {topError && (
+          <div className="alert alert-danger" role="alert">
+            {topError}
+            <ul className="mb-0 mt-2">
+              {Object.entries(fieldErrors).slice(0,3).map(([k, v]) => (
+                <li key={k}><strong>{k}:</strong> {v}</li>
+              ))}
+            </ul>
           </div>
-        );
-      })}
+        )}
 
-      {/* patient-only fields */}
-      {formData.role === "patient" && fieldList.slice(4).map((field) => {
-        const showError = touched[field] && !!fieldErrors[field];
-        return (
-          <div className="mb-3" key={field}>
-            <input
-              type="text"
-              name={field}
-              className={`form-control ${showError ? "is-invalid" : ""}`}
-              placeholder={field}
-              value={formData[field]}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              aria-invalid={showError ? "true" : "false"}
-              aria-describedby={showError ? `${field}-error` : undefined}
-              required={field === "diagnosis"}
-            />
-            {showError && (
-              <div id={`${field}-error`} className="invalid-feedback">
-                {fieldErrors[field]}
-              </div>
-            )}
-          </div>
-        );
-      })}
+        {["firstName","lastName","email","password"].map((field) => {
+          const isPwd = field === "password";
+          const showError = touched[field] && !!fieldErrors[field];
+          return (
+            <div className="mb-3" key={field}>
+              <input
+                type={isPwd ? "password" : field === "email" ? "email" : "text"}
+                name={field}
+                className={`form-control ${showError ? "is-invalid" : ""}`}
+                placeholder={field}
+                value={formData[field]}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                minLength={isPwd ? 6 : undefined}
+                aria-invalid={showError ? "true" : "false"}
+                aria-describedby={showError ? `${field}-error` : undefined}
+              />
+              {showError && (
+                <div id={`${field}-error`} className="invalid-feedback">
+                  {fieldErrors[field]}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
-      <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
-        {submitting ? "Creating account..." : "Sign up"}
-      </button>
-    </form>
+        {formData.role === "patient" && fieldList.slice(4).map((field) => {
+          const showError = touched[field] && !!fieldErrors[field];
+          return (
+            <div className="mb-3" key={field}>
+              <input
+                type="text"
+                name={field}
+                className={`form-control ${showError ? "is-invalid" : ""}`}
+                placeholder={field}
+                value={formData[field]}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                aria-invalid={showError ? "true" : "false"}
+                aria-describedby={showError ? `${field}-error` : undefined}
+                required={field === "diagnosis"}
+              />
+              {showError && (
+                <div id={`${field}-error`} className="invalid-feedback">
+                  {fieldErrors[field]}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
+          {submitting ? "Creating account..." : "Sign up"}
+        </button>
+      </form>
+
+      {/* Toast lives outside the form so it can overlay the page */}
+      <Toast
+        open={toastOpen}
+        message={toastMsg}
+        onClose={() => setToastOpen(false)}
+        variant="success"
+      />
+    </>
   );
 }
