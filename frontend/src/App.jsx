@@ -11,6 +11,7 @@ import ChatPage from "./pages/ChatPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage";
 import InviteCaregiverPage from "./pages/InviteCaregiverPage.jsx";
 import CaregiverDashboard from "./pages/CaregiverDashboard.jsx";
+import CaregiverChat from "./pages/CaregiverChat.jsx";
 
 const hasToken = () => {
   const t = localStorage.getItem("token");
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/caregiver" element={<InviteCaregiverPage />} />
             <Route path="/caregiver-dash" element={<CaregiverDashboard />} />
+            <Route path="/caregiver-chat" element={<CaregiverChat />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
