@@ -8,28 +8,30 @@ This README matches your current `docker-compose.yml` (backend on **:4000**, fro
 
 ## Quick Start
 
+### 1) Clone
 ```bash
-# 1) Clone
 git clone <your-repo-url> cancer-ai
 cd cancer-ai
+```
 
-# 2) Environment files
-# Backend (/backend/.env) — values come from compose by default, but .env is still useful locally:
-cat > backend/.env << 'EOF'
+### 2) Environment files
+
+**Backend** (`/backend/.env`) — values come from compose by default, but `.env` is still useful locally:
+```env
 PORT=4000
 MONGO_URI=mongodb://mongodb:27017/cancer_helper_ai
 SECRET_TOKEN_KEY=superUltraMegaSecretKey123
-# If your backend uses GPT4All locally in-container:
 GPT4ALL_MODEL=/app/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
 MAX_TOKENS=256
-EOF
+```
 
-# Frontend (/frontend/.env) — Vite-style
-cat > frontend/.env << 'EOF'
+**Frontend** (`/frontend/.env`)
+```env
 VITE_API_URL=http://localhost:4000
-EOF
+```
 
-# 3) Build & run
+### 3) Build & run
+```bash
 docker compose up --build
 ```
 
@@ -82,7 +84,7 @@ Backend connects to Mongo **by service name**: `mongodb://mongodb:27017/cancer_h
 These are already injected by `docker-compose.yml`, but mirrored here for clarity.
 
 ### Backend (`/backend/.env`)
-```
+```env
 PORT=4000
 MONGO_URI=mongodb://mongodb:27017/cancer_helper_ai
 SECRET_TOKEN_KEY=superUltraMegaSecretKey123
@@ -91,7 +93,7 @@ MAX_TOKENS=256
 ```
 
 ### Frontend (`/frontend/.env`)
-```
+```env
 VITE_API_URL=http://localhost:4000
 ```
 
@@ -151,26 +153,26 @@ The backend reads it via `GPT4ALL_MODEL=/app/models/tinyllama-1.1b-chat-v1.0.Q2_
 
 ## Troubleshooting
 
-**Backend says it can’t connect to Mongo (`ECONNREFUSED`)**
-- Use the service name in `MONGO_URI`: `mongodb://mongodb:27017/...`
+**Backend can’t connect to Mongo (`ECONNREFUSED`):**
+- Use the service hostname `mongodb` in `MONGO_URI`.
 - Check logs:
   ```bash
   docker compose logs -f backend mongodb
   ```
 
-**Model not found / load fails**
+**Model not found / load fails:**
 - Ensure the file exists at `./backend/models/...` on the host.
 - Inside the container, it should appear at `/app/models/...`.
 - Confirm the env var `GPT4ALL_MODEL` matches the actual filename.
 
-**Footer still shows protected links when logged out**
-- Verify `/frontend/src/components/FooterComp.jsx` reads token from `localStorage` and listens to the `storage` event.
+**Footer still shows protected links when logged out:**
+- Ensure `/frontend/src/components/FooterComp.jsx` reads token from `localStorage` and listens to the `storage` event.
 
-**CORS issues**
-- Ensure backend CORS allows `http://localhost:5173`.
+**CORS issues:**
+- Confirm backend CORS allows the frontend origin (e.g., `http://localhost:5173`).
 
-**Performance**
-- Use a smaller GGUF or reduce max tokens (`MAX_TOKENS`), if needed.
+**Performance:**
+- Use a smaller GGUF or reduce `MAX_TOKENS`.
 
 ---
 
