@@ -1,31 +1,186 @@
-# Patient-Caregiver Support Platform 💬❤️
+# Cancer AI — Mood Tracker + Local LLM Chatbot
 
-An AI-powered web platform designed to support patients and their caregivers.  
-The system provides secure patient–caregiver linking, mood tracking, journaling, and an integrated chatbot for emotional and informational support.
+Privacy‑oriented web app for cancer‑care support. Patients can record daily mood check‑ins and chat with a **local model** (no cloud API). Everything runs in Docker.
 
----
-
-## 🚀 Features
-
-- **User Authentication** (JWT-based login/signup for patients & caregivers)
-- **Patient–Caregiver Linking** (patients invite caregivers by email, caregivers get linked automatically)
-- **Mood Tracking** (patients submit daily surveys for mood, sleep, energy, appetite, etc.)
-- **AI Chatbot** (TinyLLaMA via GPT4All for supportive conversations)
-- **Frontend (React)** with role-based navigation (footer/navbar updates based on login state)
-- **Backend (Node.js + Express)** with clean routes + controllers
-- **Database** (MongoDB + Mongoose ORM)
+This README matches your current `docker-compose.yml` (backend on **:4000**, frontend on **:5173**, Mongo on host **:27018**).
 
 ---
 
-## 🛠️ Tech Stack
+## Quick Start
 
-- **Frontend:** React, React Router
-- **Backend:** Node.js, Express
-- **Database:** MongoDB
-- **AI Model:** GPT4All / TinyLLaMA (local integration via Docker)
-- **Authentication:** JWT
+```bash
+# 1) Clone
+git clone <your-repo-url> cancer-ai
+cd cancer-ai
+
+# 2) Environment files
+# Backend (/backend/.env) — values come from compose by default, but .env is still useful locally:
+cat > backend/.env << 'EOF'
+PORT=4000
+MONGO_URI=mongodb://mongodb:27017/cancer_helper_ai
+SECRET_TOKEN_KEY=superUltraMegaSecretKey123
+# If your backend uses GPT4All locally in-container:
+GPT4ALL_MODEL=/app/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
+MAX_TOKENS=256
+EOF
+
+# Frontend (/frontend/.env) — Vite-style
+cat > frontend/.env << 'EOF'
+VITE_API_URL=http://localhost:4000
+EOF
+
+# 3) Build & run
+docker compose up --build
+```
+
+**URLs**
+- Frontend: <http://localhost:5173>
+- Backend API: <http://localhost:4000>
+- MongoDB (host access): `mongodb://localhost:27018` (container uses `mongodb:27017`)
+
+> The compose defines a named volume `mongodb_data` for persistence.
 
 ---
 
-## 📂 Project Structure
+## What this project does
 
+- **Mood Tracker:** Daily MCQs (overall mood, anxiety, sleep, energy, pain, appetite).
+- **Local Chat:** Backend loads a local **GGUF** model via GPT4All (path in `GPT4ALL_MODEL`) and serves a simple chat endpoint—no external API.
+- **Auth‑aware UI:** Footer hides **Mood Check** and **Chat** until the user is logged in.
+- **Dockerized:** One command brings up frontend, backend, and MongoDB together.
+
+> Educational/demo use. Not medical advice.
+
+---
+
+## Architecture
+
+```
+frontend/         # Vite/React app (routing, auth-aware footer, mood UI, chat UI)
+backend/          # Node/Express API (auth, mood endpoints, chat controller using local model)
+  controllers/
+  routes/
+  middleware/
+  models/
+  Dockerfile
+docker-compose.yml
+README.md
+```
+
+### Port & service mapping (matches your compose)
+
+- **frontend** → container `5173` → host `5173`
+- **backend** → container `4000` → host `4000`
+- **mongodb** → container `27017` → host `27018`
+
+Backend connects to Mongo **by service name**: `mongodb://mongodb:27017/cancer_helper_ai`.
+
+---
+
+## Environment Variables
+
+These are already injected by `docker-compose.yml`, but mirrored here for clarity.
+
+### Backend (`/backend/.env`)
+```
+PORT=4000
+MONGO_URI=mongodb://mongodb:27017/cancer_helper_ai
+SECRET_TOKEN_KEY=superUltraMegaSecretKey123
+GPT4ALL_MODEL=/app/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
+MAX_TOKENS=256
+```
+
+### Frontend (`/frontend/.env`)
+```
+VITE_API_URL=http://localhost:4000
+```
+
+---
+
+## Local Model (GPT4All, in‑container)
+
+Your compose mounts the models folder:
+
+```yaml
+volumes:
+  - ./backend/models:/app/models
+```
+
+Place your GGUF model at:
+```
+./backend/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
+```
+The backend reads it via `GPT4ALL_MODEL=/app/models/tinyllama-1.1b-chat-v1.0.Q2_K.gguf`.
+
+> If you later switch to **llama.cpp server** instead of GPT4All-in-container, add `LLM_BASE_URL=http://host.docker.internal:8080` and update the chat controller accordingly. For now, this README assumes **GPT4All** per your compose file.
+
+---
+
+## Using the App
+
+1. Open the frontend at **http://localhost:5173**.
+2. Register or log in.
+3. The footer will now show **Mood Check** and **Chat**.
+4. Submit a mood entry and try chatting with the local model.
+
+---
+
+## API Overview
+
+**Auth**
+- Middleware: `/backend/middleware/auth.js` (expects `Authorization: Bearer <token>`)
+
+**Mood**
+- `GET /mood/questions` — MCQ bank
+- `POST /mood/seed` — optional seeding route (if present)
+- `POST /mood/entries` (auth) — create a mood entry
+- `GET /mood/entries/latest` — get latest entry
+
+**Chat (Local model via GPT4All)**
+- `POST /chat` — `{ "message": "..." }` → backend generates with local model specified by `GPT4ALL_MODEL`
+
+**Caregiver**
+- `POST /caregiver/invite` (auth)
+- `GET /caregiver/patient-mood` (auth)
+
+> Files:
+> - Routes: `/backend/routes/mood.routes.js`, `/backend/routes/chat.routes.js`, `/backend/routes/caregiver.routes.js`
+> - Controllers: `/backend/controllers/mood.controller.js`, `/backend/controllers/chatController.js`, `/backend/controllers/caregiverController.js`
+
+---
+
+## Troubleshooting
+
+**Backend says it can’t connect to Mongo (`ECONNREFUSED`)**
+- Use the service name in `MONGO_URI`: `mongodb://mongodb:27017/...`
+- Check logs:
+  ```bash
+  docker compose logs -f backend mongodb
+  ```
+
+**Model not found / load fails**
+- Ensure the file exists at `./backend/models/...` on the host.
+- Inside the container, it should appear at `/app/models/...`.
+- Confirm the env var `GPT4ALL_MODEL` matches the actual filename.
+
+**Footer still shows protected links when logged out**
+- Verify `/frontend/src/components/FooterComp.jsx` reads token from `localStorage` and listens to the `storage` event.
+
+**CORS issues**
+- Ensure backend CORS allows `http://localhost:5173`.
+
+**Performance**
+- Use a smaller GGUF or reduce max tokens (`MAX_TOKENS`), if needed.
+
+---
+
+## GenAI Disclosure
+
+Transparency log for this project is provided in:
+- `GenAI-log_Cancer-AI.docx`
+
+---
+
+## License
+
+MIT (or your preferred license).
